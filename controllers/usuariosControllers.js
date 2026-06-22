@@ -313,7 +313,17 @@ const autenticar = async(req,res) => {
     }
 
     const token = generarJWT({id: usuario.id, nombre: usuario.nombre})
-    console.log(token)
+    //console.log(token)
+     
+    // Almacenar la Cookie
+    return res
+        .cookie("_token", token, {
+            httpOnly: true,
+            // secure: true,
+            // sameSite: true
+        })
+        .redirect("/mis-propiedades")
+
 
 }
 
