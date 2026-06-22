@@ -1,7 +1,7 @@
 import { check, validationResult } from "express-validator";
 import bcrypt from "bcryptjs";
 import Usuario from "../models/Usuarios.js"
-import { generarId } from "../helpers/tokens.js";
+import { generarJWT, generarId } from "../helpers/tokens.js";
 import { emailRegistro, emailOlvidePassword } from "../helpers/emails.js";
 import csurf from "csurf";
 
@@ -254,4 +254,67 @@ const nuevaPassword = async(req, res) => {
     })
 }
 
-export { formularioLogin, registrar, confirmar, formularioRegistro, resetPassword, formularioOlvidePassword, comprobarToken, nuevaPassword}
+const autenticar = async(req,res) => {
+    //Validaciones
+    await check("email")
+        .isEmail()
+        .withMessage("El correo es obligatorio")
+        .run(req)
+
+    await check("password")
+        .notEmpty()
+        .withMessage("La contraseña no puede estar vacia")
+        .run(req)
+
+    let resultado = validationResult(req)
+
+    // verificar que el resultado este vacio
+    if(!resultado.isEmpty()) {
+        // Errores
+        return res.render("auth/login", {
+            tituloPagina: "Iniciar Sesión",
+            csrfToken: req.csrfToken(),
+            errores: resultado.array()
+        })
+    }
+
+    const {email, password} = req.body
+
+    // Comprobar si existe
+    const usuario = await Usuario.findOne({where: {email}})
+
+    if(!usuario){
+        return res.render("auth/login", {
+            tituloPagina: "Iniciar Sesion",
+            csrfToken: req.csrfToken(),
+            errores: [{msg: "El usuario no existe"}]
+
+        })
+    }
+
+    // Comprobar si el usuario esta confirmado (TRUE) --> 1 en la DB
+    if(!usuario.confirmado) {
+        return res.render("auth/login", {
+            tituloPagina: "Iniciar Sesion",
+            csrfToken: req.csrfToken(),
+            errores: [{msg: "El usuario no esta confirmado"}]
+
+        })
+    }
+
+    // Comprobar la contraseña
+    if(!usuario.verificarPassword(password)){
+        return res.render("auth/login", {
+            tituloPagina: "Iniciar Sesion",
+            csrfToken: req.csrfToken(),
+            errores: [{msg: "Contraseña incorrecta!"}]
+
+        })
+    }
+
+    const token = generarJWT({id: usuario.id, nombre: usuario.nombre})
+    console.log(token)
+
+}
+
+export { formularioLogin, registrar, confirmar, formularioRegistro, resetPassword, formularioOlvidePassword, comprobarToken, nuevaPassword, autenticar}
