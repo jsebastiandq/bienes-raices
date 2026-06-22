@@ -1,4 +1,6 @@
 import express from "express";
+import csurf from "csurf";
+import cookieParser from "cookie-parser";
 import usuariosRouter from "./routes/usuariosRoutes.js"
 import db from "./config/db.js"
 
@@ -11,6 +13,12 @@ app.set("views", "./views")
 
 // Habilitar lectura de Forms
 app.use(express.urlencoded({extended: true}))
+
+// Habilitar Cookie Parser
+app.use(cookieParser())
+
+// Habilitar el CSURF
+app.use(csurf({cookie: true}))
 
 
 // Conexion a DB
